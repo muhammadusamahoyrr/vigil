@@ -3,7 +3,7 @@ import Link from 'next/link'
 export function PageTitle({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
       {children}
     </div>
   )
@@ -11,8 +11,8 @@ export function PageTitle({ title, children }: { title: string; children?: React
 
 export function Card({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-border p-4">
-      {title && <h2 className="mb-3 font-semibold text-foreground">{title}</h2>}
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      {title && <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">{title}</h2>}
       {children}
     </section>
   )
@@ -20,12 +20,12 @@ export function Card({ title, children }: { title?: string; children: React.Reac
 
 export function Badge({ children, tone = 'neutral' }: { children: React.ReactNode; tone?: 'neutral' | 'good' | 'warn' | 'bad' }) {
   const tones = {
-    neutral: 'border-border text-foreground',
-    good: 'border-green-700 text-green-800 dark:text-green-400',
-    warn: 'border-amber-600 text-amber-800 dark:text-amber-400',
-    bad: 'border-red-600 text-red-700 dark:text-red-400',
+    neutral: 'bg-slate-100 text-slate-700 ring-slate-200',
+    good: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
+    warn: 'bg-amber-50 text-amber-900 ring-amber-200',
+    bad: 'bg-rose-50 text-rose-800 ring-rose-200',
   }
-  return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${tones[tone]}`}>{children}</span>
+  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${tones[tone]}`}>{children}</span>
 }
 
 export const inputClass = 'h-10 w-full rounded-md border border-input bg-background px-3 text-base text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive'

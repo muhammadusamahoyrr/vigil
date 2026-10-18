@@ -1,8 +1,5 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { LogoutButton } from '@/components/auth/logout-button'
-import { AvailabilityControl } from '@/components/availability-control'
-import { LiveRefresh } from '@/components/live-refresh'
+import { AppShell, type NavGroup } from '@/components/app-shell/app-shell'
 import { hasPermission } from '@/lib/rbac'
 import { getCtxOrNull } from '@/lib/session'
 import { getMe } from '@/services/auth'
@@ -14,44 +11,34 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const ctx = await getCtxOrNull()
   if (!ctx) redirect('/login')
   const [me, unreadChats, unreadNotes] = await Promise.all([getMe(ctx), unreadConversations(ctx), unreadNotifications(ctx)])
-  const demo = process.env.DEMO_MODE === 'true'
-  const nav = [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/inbox', label: unreadChats ? `Inbox (${unreadChats})` : 'Inbox' },
-    { href: '/notifications', label: unreadNotes ? `Notifications (${unreadNotes})` : 'Notifications' },
-    { href: '/leads', label: 'Leads' },
-    { href: '/recovery', label: 'Recovery' },
-    { href: '/contacts', label: 'Contacts' },
-    { href: '/pipeline', label: 'Pipeline' },
-    { href: '/team', label: 'Team' },
-    ...(hasPermission(ctx, 'users.manage') ? [{ href: '/settings/roles', label: 'Roles' }] : []),
-    ...(hasPermission(ctx, 'audit.view') ? [{ href: '/audit', label: 'Audit log' }] : []),
-    ...(hasPermission(ctx, 'assignment_rules.manage') ? [{ href: '/settings/rules', label: 'Assignment rules' }] : []),
-    ...(hasPermission(ctx, 'integrations.manage') ? [{ href: '/settings/integrations', label: 'Integrations' }] : []),
-    { href: '/profile', label: 'Profile' },
+  const admin: NavGroup['items'] = [
+    { href: '/team', label: 'Team', icon: 'team' },
+    ...(hasPermission(ctx, 'users.manage') ? [{ href: '/settings/roles', label: 'Roles', icon: 'roles' as const }] : []),
+    ...(hasPermission(ctx, 'audit.view') ? [{ href: '/audit', label: 'Audit log', icon: 'audit' as const }] : []),
+    ...(hasPermission(ctx, 'assignment_rules.manage') ? [{ href: '/settings/rules', label: 'Assignment rules', icon: 'rules' as const }] : []),
+    ...(hasPermission(ctx, 'integrations.manage') ? [{ href: '/settings/integrations', label: 'Integrations', icon: 'plug' as const }] : []),
+    { href: '/profile', label: 'Profile', icon: 'profile' },
+  ]
+  const groups: NavGroup[] = [
+    { title: 'Workspace', items: [
+      { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { href: '/inbox', label: 'Inbox', icon: 'inbox', badge: unreadChats },
+      { href: '/notifications', label: 'Notifications', icon: 'bell', badge: unreadNotes },
+    ] },
+    { title: 'Leads', items: [
+      { href: '/leads', label: 'Leads', icon: 'leads' },
+      { href: '/recovery', label: 'Recovery queue', icon: 'recovery' },
+    ] },
+    { title: 'CRM', items: [
+      { href: '/contacts', label: 'Contacts', icon: 'contacts' },
+      { href: '/pipeline', label: 'Pipeline', icon: 'pipeline' },
+    ] },
+    { title: 'Settings', items: admin },
   ]
   return (
-    <div className="min-h-screen">
-      {demo && <p className="bg-amber-100 px-4 py-1 text-center text-xs text-amber-950" role="note">Demo mode: short acknowledgement and escalation timers for a live presentation.</p>}
-      <header className="border-b border-border">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-start justify-between gap-4 px-4 py-3">
-          <div className="flex flex-col gap-1">
-            <Link href="/dashboard" className="text-xl font-semibold text-foreground">Vigil</Link>
-            <span className="text-xs text-muted-foreground">{me.name} · {me.workspaceName} · <span className="capitalize">{me.level}</span></span>
-            <LiveRefresh />
-          </div>
-          <AvailabilityControl userId={me.userId!} current={me.availability} />
-          <LogoutButton />
-        </div>
-        <nav aria-label="Main" className="mx-auto w-full max-w-6xl overflow-x-auto px-4 pb-2">
-          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-            {nav.map(n => (
-              <li key={n.href}><Link href={n.href} className="underline-offset-4 hover:underline focus-visible:underline">{n.label}</Link></li>
-            ))}
-          </ul>
-        </nav>
-      </header>
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6">{children}</main>
-    </div>
+    <AppShell groups={groups} demo={process.env.DEMO_MODE === 'true'} unreadNotifications={unreadNotes}
+      user={{ id: me.userId!, name: me.name, workspace: me.workspaceName, level: me.level, availability: me.availability }}>
+      {children}
+    </AppShell>
   )
 }
