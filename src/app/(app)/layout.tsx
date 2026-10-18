@@ -36,7 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { title: 'Settings', items: admin },
   ]
   return (
-    <AppShell groups={groups} demo={process.env.DEMO_MODE === 'true'} unreadNotifications={unreadNotes}
+    <AppShell groups={groups} unreadNotifications={unreadNotes}
       user={{ id: me.userId!, name: me.name, workspace: me.workspaceName, level: me.level, availability: me.availability }}>
       {children}
     </AppShell>

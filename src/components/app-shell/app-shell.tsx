@@ -76,8 +76,8 @@ function SidebarContent({ groups, user, onNavigate }: { groups: NavGroup[]; user
   )
 }
 
-export function AppShell({ groups, user, demo, unreadNotifications, children }:
-  { groups: NavGroup[]; user: User; demo: boolean; unreadNotifications: number; children: React.ReactNode }) {
+export function AppShell({ groups, user, unreadNotifications, children }:
+  { groups: NavGroup[]; user: User; unreadNotifications: number; children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const path = usePathname()
   useEffect(() => setOpen(false), [path])
@@ -100,7 +100,6 @@ export function AppShell({ groups, user, demo, unreadNotifications, children }:
       )}
 
       <div className="lg:pl-64">
-        {demo && <p className="bg-amber-100 px-4 py-1.5 text-center text-xs font-medium text-amber-950" role="note">Demo mode: short acknowledgement and escalation timers for a live presentation.</p>}
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur sm:px-6 lg:px-8">
           <button type="button" onClick={() => setOpen(true)} className="-ml-1 rounded-md p-1.5 text-slate-700 hover:bg-slate-100 lg:hidden" aria-label="Open menu">
             <Menu className="size-5" />
