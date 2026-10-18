@@ -10,6 +10,8 @@ import { POST as movePOST } from '@/app/api/opportunities/[id]/move/route'
 import { GET as exportGET } from '@/app/api/export/[entity]/route'
 import { PUT as rolePUT } from '@/app/api/roles/[id]/route'
 import { GET as auditGET } from '@/app/api/audit/route'
+import { PATCH as userPATCH } from '@/app/api/users/[id]/route'
+import { POST as teamPOST } from '@/app/api/team/route'
 import { POST as leadsPOST, GET as leadsGET } from '@/app/api/leads/route'
 import { getCtx, newSessionToken, SESSION_COOKIE } from '@/lib/session'
 import { dashboard } from '@/lib/metrics'
@@ -123,6 +125,31 @@ describe('tenant isolation and audit', () => {
     const a = await (await auditGET(req('/api/audit?action=contact.', { method: 'GET', token: A.owner }), undefined)).json()
     expect(a.rows.length).toBeGreaterThan(0)
     expect(a.rows.every((r: { action: string }) => r.action.startsWith('contact.'))).toBe(true)
+  })
+
+  it('audit entries do not leak opportunity value to viewers without opportunity_value.view', async () => {
+    const keys = (await pool.query(`SELECT array_agg(permission_key) k FROM role_permissions WHERE role_id = $1`, [A.salesRole])).rows[0].k
+    await rolePUT(req('/x', { method: 'PUT', token: A.owner, body: { keys: [...keys, 'audit.view'] } }), P({ id: A.salesRole }))
+    const sales = await (await auditGET(req('/api/audit?action=opportunity.created', { method: 'GET', token: A.sales }), undefined)).json()
+    expect(sales.rows.length).toBeGreaterThan(0)
+    expect(JSON.stringify(sales.rows)).not.toContain('1250000')
+    const owner = await (await auditGET(req('/api/audit?action=opportunity.created', { method: 'GET', token: A.owner }), undefined)).json()
+    expect(JSON.stringify(owner.rows)).toContain('1250000')
+    await rolePUT(req('/x', { method: 'PUT', token: A.owner, body: { keys } }), P({ id: A.salesRole }))
+  })
+})
+
+describe('level hierarchy', () => {
+  it('a User with users.manage cannot create or promote Admins', async () => {
+    const keys = (await pool.query(`SELECT array_agg(permission_key) k FROM role_permissions WHERE role_id = $1`, [A.salesRole])).rows[0].k
+    await rolePUT(req('/x', { method: 'PUT', token: A.owner, body: { keys: [...keys, 'users.manage'] } }), P({ id: A.salesRole }))
+    const add = await teamPOST(req('/api/team', { token: A.sales, body: { name: 'Sneaky', email: `s-${uniq()}@test.local`, password: 'correct-horse-battery', level: 'admin' } }), undefined)
+    expect(add.status).toBe(403)
+    const plain = await (await teamPOST(req('/api/team', { token: A.sales, body: { name: 'Plain', email: `p-${uniq()}@test.local`, password: 'correct-horse-battery', level: 'user' } }), undefined)).json()
+    expect((await userPATCH(req('/x', { method: 'PATCH', token: A.sales, body: { level: 'admin' } }), P({ id: plain.userId }))).status).toBe(403)
+    expect((await userPATCH(req('/x', { method: 'PATCH', token: A.owner, body: { level: 'admin' } }), P({ id: plain.userId }))).status).toBe(200)
+    expect((await userPATCH(req('/x', { method: 'PATCH', token: A.sales, body: { roleIds: [] } }), P({ id: plain.userId }))).status).toBe(403)
+    await rolePUT(req('/x', { method: 'PUT', token: A.owner, body: { keys } }), P({ id: A.salesRole }))
   })
 })
 

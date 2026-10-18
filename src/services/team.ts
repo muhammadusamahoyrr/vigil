@@ -58,6 +58,7 @@ export const addMemberSchema = z.object({
 /** Quick team setup for the demo (invites come in Step 3): the member logs in with the temporary password. */
 export async function addMember(ctx: Ctx, input: z.infer<typeof addMemberSchema>) {
   requirePermission(ctx, 'users.manage')
+  if (input.level === 'admin' && ctx.level === 'user') throw new ApiError(403, 'Only the Owner or an Admin can add an Admin.')
   const passwordHash = await hash(input.password, { algorithm: 2 })
   try {
     return await scoped(ctx).tx(async tx => {

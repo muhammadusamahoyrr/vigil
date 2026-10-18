@@ -6,7 +6,7 @@ import { audit } from '@/lib/audit'
 import type { Ctx } from '@/lib/ctx'
 import { ApiError } from '@/lib/errors'
 import { PERMISSION_KEYS } from '@/lib/permissions'
-import { requirePermission } from '@/lib/rbac'
+import { hasPermission, requirePermission } from '@/lib/rbac'
 
 const uuid = z.string().uuid()
 
@@ -82,6 +82,8 @@ async function loadTarget(ctx: Ctx, userId: string) {
     'SELECT id, level, deactivated_at FROM users WHERE workspace_id = $1 AND id = $2', [userId])
   if (!t) throw new ApiError(404, 'User not found.')
   if (t.level === 'owner') throw new ApiError(403, 'The Owner cannot be changed here.')
+  // a User who manages users through a role must not act on Admins (they hold every permission)
+  if (t.level === 'admin' && ctx.level === 'user') throw new ApiError(403, 'Only the Owner or an Admin can change an Admin.')
   if (t.id === ctx.userId) throw new ApiError(403, 'You cannot change your own level or roles.')
   return t
 }
@@ -89,6 +91,10 @@ async function loadTarget(ctx: Ctx, userId: string) {
 export async function updateUser(ctx: Ctx, userId: string, input: z.infer<typeof userUpdateSchema>) {
   requirePermission(ctx, 'users.manage')
   const target = await loadTarget(ctx, userId)
+  // levels decide the permission ceiling: only Owner/Admin may change them (no self-made Admins)
+  if (input.level && input.level !== target.level && ctx.level === 'user') {
+    throw new ApiError(403, 'Only the Owner or an Admin can change levels.')
+  }
   return scoped(ctx).tx(async tx => {
     const before = await tx.one(
       `SELECT u.level, COALESCE(array_agg(ur.role_id) FILTER (WHERE ur.role_id IS NOT NULL), '{}') AS role_ids
@@ -139,5 +145,11 @@ export async function listAudit(ctx: Ctx, f: { action?: string; userId?: string;
       LIMIT 51 OFFSET $6`,
     [f.action || null, f.userId && uuid.safeParse(f.userId).success ? f.userId : null, f.from || null, f.to || null, (page - 1) * 50])
   const actions = await db.many<{ action: string }>('SELECT DISTINCT action FROM audit_logs WHERE workspace_id = $1 ORDER BY 1')
-  return { rows: rows.slice(0, 50), hasMore: rows.length > 50, page, actions: actions.map(a => a.action) }
+  // F1.4 applies to the audit log too: hide opportunity values from viewers without the permission
+  const canSeeValue = hasPermission(ctx, 'opportunity_value.view')
+  const mask = (v: unknown) =>
+    v && typeof v === 'object' && 'value' in v ? { ...(v as Record<string, unknown>), value: null, value_masked: true } : v
+  const safe = rows.slice(0, 50).map(r =>
+    canSeeValue || r.target_type !== 'opportunity' ? r : { ...r, before: mask(r.before), after: mask(r.after) })
+  return { rows: safe, hasMore: rows.length > 50, page, actions: actions.map(a => a.action) }
 }
