@@ -1,6 +1,6 @@
 # CLAUDE.md: rules for the AI writing code in this repo
 
-`sql/001_schema.sql` and `sql/002_lead_engine.sql` are the **only** source of truth for the database. Read them before writing code. Never invent a table, column, function or permission key. If one is missing, stop and say so.
+`sql/001_schema.sql`, `sql/002_lead_engine.sql` and `sql/003_web_chat.sql` are the **only** source of truth for the database (never edit an applied file; add the next numbered one). Read them before writing code. Never invent a table, column, function or permission key. If one is missing, stop and say so.
 
 ## Stack (fixed)
 Next.js 15 App Router · TypeScript non-strict · PostgreSQL via `pg` (**no ORM**) · Tailwind + shadcn/ui · `zod` · `@node-rs/argon2`
@@ -35,7 +35,7 @@ systemCtx(workspaceId: string): Ctx       // { userId: null, level: 'owner', per
 - `scoped(ctx)` is for request and service code: it adds `workspace_id = ctx.workspaceId` to every query.
 - The worker may call `pool.query` directly **only** to run the SQL functions in `002_lead_engine.sql` with ids it just read from the database. Nothing else in the worker touches tables directly.
 - `scoped()` convention: `$1` is always `ctx.workspaceId` (added automatically); your params start at `$2`. SQL must contain `workspace_id = $1`, or be `INSERT INTO t (workspace_id, ...) VALUES ($1, ...)`.
-- **Pre-context lookups (the only exception):** `src/db/auth.ts` may query before a `Ctx` exists, for exactly (1) inserting the workspace in the signup transaction, (2) finding a login identity by globally unique email, (3) resolving a session by sha256 token hash, (4) deleting that session, (5) resolving a workspace by its `public_form_token` for `/f/[token]` (then `systemCtx`). Right after, everything uses scoped helpers bound to the workspace id PostgreSQL returned. Never add other queries there.
+- **Pre-context lookups (the only exception):** `src/db/auth.ts` may query before a `Ctx` exists, for exactly (1) inserting the workspace in the signup transaction, (2) finding a login identity by globally unique email, (3) resolving a session by sha256 token hash, (4) deleting that session, (5) resolving a workspace by its `public_form_token` for `/f/[token]`, (6) resolving a workspace by its public `slug` for `/chat/[slug]` (then `systemCtx`; the customer's conversation comes ONLY from the sha256 of the `vigil_chat` cookie token). Right after, everything uses scoped helpers bound to the workspace id PostgreSQL returned. Never add other queries there.
 
 ## Permissions (use exactly these keys, never invent new ones)
 ```
@@ -101,6 +101,14 @@ for (const r of o.rows) await pool.query("SELECT assign_new_lead($1, 'lead.recov
 // (no link poller: Slack routing resolves users.slack_email -> slack_user_id with users.lookupByEmail)
 ```
 **Never wrap these calls in a shared `BEGIN ... COMMIT`.** Each call must be its own transaction so it takes and releases exactly one workspace advisory lock. Batching holds several locks at once (deadlocks) and lets one bad lead roll back the whole batch. Wrap each loop body in try/catch and log, so one error never stops the loop.
+
+## Customer messaging: first-party Vigil Web Chat
+Twilio WhatsApp cannot be configured from Pakistan, so customer messaging uses **Vigil Web Chat** (`/chat/[slug]`), allowed under the organizers' alternative-technology announcement. Never claim a WhatsApp integration exists.
+- First message: contact (matched by phone/email) + conversation + message + lead (or the contact's open lead) + `assign_new_lead`, ONE transaction, serialized by an advisory lock on the browser's idempotency key (`messages.client_key` is unique).
+- Customer token: 32 random bytes in an HttpOnly, SameSite=Lax cookie (`Path=/chat/<slug>`, Secure in production); only its sha256 is stored (`conversations.customer_token_hash`). One web conversation per token: typing someone's phone number never opens their history.
+- Agent replies are stored as outbound messages (no provider call), write an activity + audit row and call `record_lead_action(..., 'message')`.
+- In-app notifications come from the `lead_assignments_notifications_t` trigger (every new owner, and `lead.missed` for the owner who let the window expire) plus `message.new` on later customer messages. Slack stays optional.
+- Customer realtime: `/chat/[slug]/stream` sends bare "changed" pings for that conversation only; the browser refetches through the cookie. NOTIFY payloads stay IDs only.
 
 ## Webhooks (Twilio and Stripe, identical)
 1. Read the **raw body** first (`await req.text()`). Stripe cannot verify without it.

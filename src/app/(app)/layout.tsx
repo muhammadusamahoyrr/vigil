@@ -6,15 +6,19 @@ import { LiveRefresh } from '@/components/live-refresh'
 import { hasPermission } from '@/lib/rbac'
 import { getCtxOrNull } from '@/lib/session'
 import { getMe } from '@/services/auth'
+import { unreadConversations, unreadNotifications } from '@/services/inbox'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await getCtxOrNull()
   if (!ctx) redirect('/login')
-  const me = await getMe(ctx)
+  const [me, unreadChats, unreadNotes] = await Promise.all([getMe(ctx), unreadConversations(ctx), unreadNotifications(ctx)])
+  const demo = process.env.DEMO_MODE === 'true'
   const nav = [
     { href: '/dashboard', label: 'Dashboard' },
+    { href: '/inbox', label: unreadChats ? `Inbox (${unreadChats})` : 'Inbox' },
+    { href: '/notifications', label: unreadNotes ? `Notifications (${unreadNotes})` : 'Notifications' },
     { href: '/leads', label: 'Leads' },
     { href: '/recovery', label: 'Recovery' },
     { href: '/contacts', label: 'Contacts' },
@@ -28,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ]
   return (
     <div className="min-h-screen">
+      {demo && <p className="bg-amber-100 px-4 py-1 text-center text-xs text-amber-950" role="note">Demo mode: short acknowledgement and escalation timers for a live presentation.</p>}
       <header className="border-b border-border">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-start justify-between gap-4 px-4 py-3">
           <div className="flex flex-col gap-1">

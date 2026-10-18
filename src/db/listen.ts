@@ -3,7 +3,7 @@
 import 'server-only'
 import { Client } from 'pg'
 
-export type WorkspaceEvent = { ws: string; table: string; op: string; id: string; lead_id: string | null }
+export type WorkspaceEvent = { ws: string; table: string; op: string; id: string; lead_id: string | null; conversation_id?: string | null }
 
 export async function listenWorkspace(
   workspaceId: string,

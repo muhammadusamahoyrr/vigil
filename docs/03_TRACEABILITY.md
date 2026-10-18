@@ -47,7 +47,7 @@ Fill the **Code** column with real file paths as each step lands, and tick **Sta
 | F3.6 | Reassign on absence; acknowledged-lead policy shown | 5b | availability control + policy text | `change_availability` *(verify)* | Manual | — | ☐ |
 | F3.7 | Recovery queue with reasons | 5d | `/recovery` | `recovery_queue` view *(verify)* | Manual: three reasons shown | Demo moment 3 | ☐ |
 | F3.8 | One owner at a time, no double escalation | 5c | worker: one transaction per call | TBD (one-open-assignment rule, advisory lock in `sweep_one`) | **T1**, **T2** | R3 | ☐ |
-| F3.9 | External alert on escalation | 9 | `worker/outbox.ts` notify handler | TBD (outbox enqueue) | Manual | R2 | ☐ |
+| F3.9 | External alert on escalation | 9, chat | In-app: `/notifications`, header count; optional Slack DM via `worker/outbox.ts` | `lead_assignments_notifications_t` (new owner + `lead.missed`), `outbox_notify_once` | `tests/webchat.test.ts` W10, W11; Slack-missing test in `tests/leads.test.ts` | step 5 | ☑ (in-app; Slack optional) |
 
 ## F4. Audit history
 
@@ -67,19 +67,21 @@ Fill the **Code** column with real file paths as each step lands, and tick **Sta
 | F5.4 | Role-aware figures | 12 | personal vs company-wide | — | Manual | — | ☐ |
 | F5.5 | Show/hide tiles remembered | 12 | `user_preferences.hidden_tiles` | TBD | Manual: hide, reload | — | ☐ |
 
-## I1. Messaging (Twilio WhatsApp)
+## I1. Messaging: first-party Vigil Web Chat (alternative to Twilio WhatsApp)
+
+Twilio WhatsApp → **Vigil Web Chat** `/chat/<slug>`, allowed under the organizers' alternative-technology announcement (Twilio/Meta cannot be configured from Pakistan). No WhatsApp integration is claimed. Test file: `tests/webchat.test.ts` (W1–W13).
 
 | ID | Requirement | Step | Code / API / UI | DB rule | Test | Demo | Status |
 |---|---|---|---|---|---|---|---|
-| I1.1 | Receive messages | 7a | `/api/webhooks/twilio/[token]` | TBD | Manual: real phone | R1 | ☐ |
-| I1.2 | Signature verification, forged rejected and recorded | 7a | verify over `APP_URL + path` | TBD (`security_events`) | Manual: forged request → 400 | R4 | ☐ |
-| I1.3 | Send messages | 7b | Conversations page, outbox message handler | — | Manual | R1 | ☐ |
-| I1.4 | Delivery status | 7b | `/status` webhook | TBD | Manual | — | ☐ |
-| I1.5 | Contact matching / new contact + lead | 7a | match by phone in workspace | TBD | Manual | R1 | ☐ |
-| I1.6 | Conversation ownership and visibility | 7b | `conversations.view` | — | Manual | — | ☐ |
-| I1.7 | Failure visible with reason + Retry | 7b | outbox permanent/temporary handling | — | Manual: phone that did not join | — | ☐ |
-| I1.8 | No duplicate messages/leads | 7a | `ON CONFLICT DO NOTHING RETURNING` | TBD (unique `(workspace_id, provider, external_event_id)`) | **T6** | — | ☐ |
-| I1.9 | Opt-out blocks sending, explained | 7b | send service check | TBD (`contacts.opted_out`) | Manual | — | ☐ |
+| I1.1 | Receive messages | chat | `/chat/[slug]` page, `POST /chat/[slug]/messages`, `src/services/webchat.ts` | `003_web_chat.sql`: channel `web`, lead source `chat` | W1 | Two-browser step 2–3 | ☑ |
+| I1.2 | Request authenticity | chat | random 32-byte token in HttpOnly cookie, sha256 lookup; workspace only from slug; Origin check; rate limit | `conversations.customer_token_hash UNIQUE`, `conversations_web_token` | W5/6 (forged/other-workspace token) | — | ☑ (alternative to signatures) |
+| I1.3 | Send messages | chat | Inbox reply `POST /api/inbox/[id]/reply` | outbound `messages` row | W9 | step 4 | ☑ |
+| I1.4 | Delivery status | chat | first-party: stored = delivered; "customer last viewed" from `customer_read_at` | `conversations.customer_read_at` | W9 | step 4 | ☑ (no provider states) |
+| I1.5 | Contact matching / new contact + lead | chat | match by phone or email in the workspace | `contacts_phone_unique`, contact row lock | W1, W3 | step 2 | ☑ |
+| I1.6 | Conversation ownership and visibility | chat | `/inbox`: own leads only; Owner/Admin/leads.reassign all; else 404 | — | W7 | step 3 | ☑ |
+| I1.7 | Failure visible, retry | chat | customer: error + same idempotency key on resend; agent: error message | — | W13 | — | ☑ |
+| I1.8 | No duplicates | chat | browser idempotency key + advisory lock | `messages_client_key_unique` | W2, W3 | — | ☑ |
+| I1.9 | Opt-out blocks sending | 7 | applies to provider channels; web chat replies go only to the customer's own session | `contacts.opted_out` | — | — | ☐ (provider channel) |
 
 ## I2. Payments (Stripe test mode)
 

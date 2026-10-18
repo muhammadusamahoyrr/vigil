@@ -14,6 +14,9 @@ import { addMember } from '../src/services/team'
 import { authTest, lookupUserByEmail } from '../src/providers/slack'
 
 const PASSWORD = process.env.SEED_PASSWORD || 'VigilDemo2026!'
+// DEMO_MODE=true: short timers for a live 3-5 minute presentation. Otherwise realistic 5-minute windows.
+const DEMO = process.env.DEMO_MODE === 'true'
+const WINDOW = DEMO ? 60 : 300
 const OWNER_EMAIL = 'ayesha@lahoresolar.demo'
 
 const ownerCtx = (workspaceId: string, userId: string): Ctx =>
@@ -44,11 +47,11 @@ async function main() {
   // Owner and Admin watch; sales people and the manager take leads
   await pool.query(`UPDATE users SET availability = 'busy' WHERE id = ANY($1)`, [[s.userId, ids.Hamza, ids.Fatima]])
   await pool.query(
-    `UPDATE assignment_rules SET ack_window_seconds = 20, max_open_leads = 5, idle_seconds = 300,
+    `UPDATE assignment_rules SET ack_window_seconds = $5, max_open_leads = 5, idle_seconds = $6,
             escalation_levels = $2, backup_user_id = $3, manager_role_id = $4
       WHERE workspace_id = $1`,
-    [ws, JSON.stringify([{ type: 'next_available', seconds: 20 }, { type: 'backup', seconds: 20 }, { type: 'manager', seconds: 20 }]),
-     ids.Bilal, manager])
+    [ws, JSON.stringify([{ type: 'next_available', seconds: WINDOW }, { type: 'backup', seconds: WINDOW }, { type: 'manager', seconds: WINDOW }]),
+     ids.Bilal, manager, WINDOW, DEMO ? 300 : 3600])
 
   // Slack (optional)
   const token = process.env.SLACK_BOT_TOKEN?.trim()
@@ -86,7 +89,7 @@ async function main() {
   await addMember(ownerCtx(o.workspaceId, o.userId), { name: 'Zara Ahmed', email: 'zara@otherco.demo', password: PASSWORD, level: 'user', roleId: undefined })
   await createLead(systemCtx(o.workspaceId), { name: 'Other Co Customer', phone: '+923009990000' }, 'manual')
 
-  const form = (await pool.query('SELECT public_form_token FROM workspaces WHERE id = $1', [ws])).rows[0].public_form_token
+  const { public_form_token: form, slug } = (await pool.query('SELECT public_form_token, slug FROM workspaces WHERE id = $1', [ws])).rows[0]
   console.log(`
 Demo data ready. Password for every account: ${process.env.SEED_PASSWORD ? '(from SEED_PASSWORD)' : PASSWORD}
   Lahore Solar Solutions
@@ -94,7 +97,8 @@ Demo data ready. Password for every account: ${process.env.SEED_PASSWORD ? '(fro
     Admin    hamza@lahoresolar.demo
     Manager  fatima@lahoresolar.demo   (Manager role)
     Sales    ali@lahoresolar.demo, sara@lahoresolar.demo, bilal@lahoresolar.demo (Bilal = backup)
-    Rules    20s window: next available -> backup (Bilal) -> manager role
+    Rules    ${WINDOW}s window${DEMO ? ' (DEMO_MODE)' : ''}: next available -> backup (Bilal) -> manager role
+    Web chat ${process.env.APP_URL ?? ''}/chat/${slug}
     Web form ${process.env.APP_URL ?? ''}/f/${form}
   Other Co (isolation demo)
     Owner    omar@otherco.demo

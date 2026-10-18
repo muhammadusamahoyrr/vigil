@@ -34,7 +34,8 @@ async function sendNotify(c: PoolClient, row: OutboxRow): Promise<string> {
     `SELECT id, credentials FROM integration_connections
       WHERE workspace_id = $1 AND provider = 'slack' AND user_id IS NULL AND status <> 'not_connected'`,
     [row.workspace_id])
-  if (!conn.rows[0]) throw new ProviderError('Slack is not connected for this workspace.', false)
+  // Slack is optional: the in-app notification was already created by the lead engine trigger
+  if (!conn.rows[0]) throw new ProviderError('Slack is not connected for this workspace (in-app notification delivered).', false, 'not_connected')
   const token = decrypt(conn.rows[0].credentials)
 
   const { rows } = await c.query(
@@ -103,7 +104,7 @@ export async function sendOutbox() {
             [row.id, attempts, message, delay])
         }
         await logEvent(c, row, 'failed', null, message)
-        console.error(`[outbox] ${row.kind} ${row.id} attempt ${attempts}: ${message}`)
+        if (!(e instanceof ProviderError && e.code === 'not_connected')) console.error(`[outbox] ${row.kind} ${row.id} attempt ${attempts}: ${message}`)
       }
     }
     await c.query('COMMIT')

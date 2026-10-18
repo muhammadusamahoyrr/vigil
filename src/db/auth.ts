@@ -103,6 +103,14 @@ export async function deleteSessionByHash(tokenHash: Buffer): Promise<void> {
   await pool.query('DELETE FROM sessions WHERE token_hash = $1', [tokenHash])
 }
 
+/** (6) Public web chat /chat/[slug]: resolve the workspace from its public slug. */
+export async function findWorkspaceBySlug(slug: string): Promise<{ id: string; name: string; slug: string } | null> {
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) || slug.length > 80) return null
+  const { rows } = await pool.query<{ id: string; name: string; slug: string }>(
+    'SELECT id, name, slug FROM workspaces WHERE slug = $1', [slug])
+  return rows[0] ?? null
+}
+
 /** (5) Public web form /f/[token]: resolve the workspace from its unguessable form token. */
 export async function findWorkspaceByFormToken(token: string): Promise<{ id: string; name: string } | null> {
   if (!/^[0-9a-f]{32}$/.test(token)) return null

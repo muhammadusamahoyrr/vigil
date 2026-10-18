@@ -115,7 +115,9 @@ export async function getLead(ctx: Ctx, leadId: string) {
        FROM activities act LEFT JOIN users u ON u.id = act.actor_id
       WHERE act.workspace_id = $1 AND (act.lead_id = $2 OR (act.contact_id = $3 AND act.lead_id IS NULL))
       ORDER BY act.created_at DESC LIMIT 100`, [leadId, lead.contact_id])
-  return { lead, history, activities }
+  const conversation = await db.maybeOne<{ id: string }>(
+    'SELECT id FROM conversations WHERE workspace_id = $1 AND lead_id = $2 ORDER BY created_at DESC LIMIT 1', [leadId])
+  return { lead, history, activities, conversationId: conversation?.id ?? null }
 }
 
 export async function acknowledgeLead(ctx: Ctx, leadId: string) {

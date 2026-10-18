@@ -11,14 +11,17 @@ const iso = (d: Date | string | null) => (d instanceof Date ? d.toISOString() : 
 
 export default async function LeadPage({ params }: { params: Promise<{ id: string }> }) {
   const ctx = (await getCtxOrNull())!
-  const { lead, history, activities } = await getLead(ctx, (await params).id)
+  const { lead, history, activities, conversationId } = await getLead(ctx, (await params).id)
   const canReassign = hasPermission(ctx, 'leads.reassign')
   const team = canReassign ? (await listTeam(ctx)).filter(u => !u.deactivated_at) : []
   return (
     <>
       <p className="text-sm"><Link href="/leads" className="underline underline-offset-4">← All leads</Link></p>
       <PageTitle title={lead.contact_name}>
-        <Badge>{SOURCE_LABEL[lead.source] ?? lead.source}</Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge>{SOURCE_LABEL[lead.source] ?? lead.source}</Badge>
+          {conversationId && <Link href={`/inbox/${conversationId}`} className="text-sm underline underline-offset-4">Open chat</Link>}
+        </div>
       </PageTitle>
 
       <div className="grid gap-4 md:grid-cols-2">

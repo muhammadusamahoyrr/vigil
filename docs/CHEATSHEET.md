@@ -18,6 +18,40 @@
 
 ---
 
+## WhatsApp ki jagah Vigil Web Chat
+
+| Problem statement | Vigil mein | Kyun |
+|---|---|---|
+| Twilio WhatsApp customer messaging (I1) | **First-party Vigil Web Chat** `/chat/<workspace-slug>` | Twilio aur Meta Pakistan se configure nahi hote; organizers ne alternative technology allow ki hai |
+| Telegram/Slack escalation alert (I4) | **In-app notifications** (Slack optional, token ho to DM bhi) | Core demo kisi third-party account ke baghair chale |
+
+Judges ko saaf batao: WhatsApp integration **nahi** hai; web chat uska first-party alternative hai. Signature/idempotency jaisa kaam yahan idempotency key + hashed cookie token se hota hai.
+
+**Limitations:** customer ko browser tab khula rakhna parta hai (push notification nahi), chat sirf usi browser mein dobara khulti hai jis ke paas cookie hai, aur ek IP se 20 messages/minute ki limit hai.
+
+### Local demo (koi account ya token nahi chahiye)
+```bash
+docker start vigil-sqltest            # ya koi bhi local Postgres 15+
+npm run migrate
+DEMO_MODE=true npm run seed           # 60s windows, demo logins print hote hain
+npm run build && npm run start        # http://localhost:3000
+npm run worker                        # doosre terminal mein: escalation + recovery
+```
+- Agent: http://localhost:3000/login → `ali@lahoresolar.demo` / `VigilDemo2026!`
+- Customer (incognito): http://localhost:3000/chat/lahore-solar-solutions
+
+### Do browser ka test (5 minute)
+1. Normal browser: Owner `ayesha@lahoresolar.demo` login, **Inbox** kholo. Doosre tab mein Sara aur Ali (incognito ya doosra browser profile).
+2. Incognito: `/chat/lahore-solar-solutions` → naam, phone, message → Send.
+3. Agent screen bina refresh: Inbox mein naya chat, **Notifications (1)**, countdown chal raha.
+4. Owner (jis ko lead mili) Acknowledge dabaye, phir reply likhe → customer ki screen par foran reply.
+5. Doosra customer chat shuru karo aur ignore karo → countdown khatam → worker escalate karta hai → naye owner ko "Lead escalated to you", purane ko "Missed" notification.
+6. `/recovery` aur lead ka **Ownership chain**, phir `/audit`.
+7. Worker band karo, deadline guzarne do, worker chalao → escalation phir bhi hoti hai.
+
+### Railway par
+Variables (web aur worker dono): `DATABASE_URL`, `APP_URL`, `SESSION_SECRET`, `ENCRYPTION_KEY`, `NODE_ENV=production`, `DEMO_MODE=true` (sirf demo ke liye). `SLACK_BOT_TOKEN` optional. Migrate deploy se pehle khud chalta hai; seed ek dafa: `DATABASE_URL=<public url> APP_URL=<domain> DEMO_MODE=true npm run seed`.
+
 ## Pitch (ek line)
 
 > **Vigil is a lead-loss prevention system: every lead always has one accountable owner, every missed response automatically escalates, and the complete chain is provable.**
@@ -26,7 +60,7 @@ CRM, payments aur calendar supporting features hain. Asal cheez accountability e
 
 ## Pehle ye vertical slice poora karo
 
-**WhatsApp lead → assignment → countdown → escalation → Slack alert → recovery queue → audit log.**
+**Web chat message → lead → assignment → countdown → escalation → in-app notification (+ Slack if connected) → recovery queue → audit log.**
 
 Ye real services ke saath, worker restart ke baad bhi, duplicate webhooks ke saath bhi chal jaye, phir baqi CRM. Person C (step 5) isi par pehle din se lage.
 
@@ -63,7 +97,7 @@ Ye real services ke saath, worker restart ke baad bhi, duplicate webhooks ke saa
 |---|---|---|---|
 | 1 | sweeper | 2s | overdue unacknowledged leads escalate |
 | 2 | orphan guard | 10s | bina owner wali leads ko owner dena |
-| 3 | outbox | 2s | Slack DM alerts aur WhatsApp replies bhejna, retry (permanent error par foran `failed`) |
+| 3 | outbox | 2s | Slack DM alerts (optional; Slack na ho to row `failed` ho jati hai, in-app notification phir bhi milti hai), retry |
 
 (Telegram Pakistan mein nahi chalta, is liye Slack. Link poller ki zaroorat nahi: user Profile mein apna Slack email daalta hai.)
 

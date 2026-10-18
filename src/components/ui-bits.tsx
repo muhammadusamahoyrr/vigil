@@ -34,7 +34,18 @@ export function TextLink({ href, children }: { href: string; children: React.Rea
   return <Link href={href} className="font-medium underline underline-offset-4">{children}</Link>
 }
 
-export const SOURCE_LABEL: Record<string, string> = { manual: 'Manual', form: 'Web form', message: 'WhatsApp' }
+export const SOURCE_LABEL: Record<string, string> = { manual: 'Manual', form: 'Web form', message: 'WhatsApp', chat: 'Web chat' }
+
+/** New / Assigned / Acknowledged / Escalated / Recovered, from the open assignment. */
+export function leadStatus(a: { owner_id?: string | null; acknowledged_at?: unknown; level?: number | null; reason?: string | null; lead_status?: string | null }):
+  { label: string; tone: 'neutral' | 'good' | 'warn' | 'bad' } {
+  if (a.lead_status && a.lead_status !== 'open') return { label: a.lead_status, tone: 'neutral' }
+  if (!a.owner_id) return { label: 'New (no owner yet)', tone: 'warn' }
+  if (a.acknowledged_at) return { label: 'Acknowledged', tone: 'good' }
+  if (a.reason === 'lead.recovered') return { label: 'Recovered', tone: 'warn' }
+  if (a.reason === 'lead.escalated' || (a.level ?? 0) > 0) return { label: 'Escalated', tone: 'bad' }
+  return { label: 'Assigned', tone: 'neutral' }
+}
 export const REASON_LABEL: Record<string, string> = {
   overdue: 'Overdue (not acknowledged in time)',
   escalated_twice: 'Escalated 2+ times',
