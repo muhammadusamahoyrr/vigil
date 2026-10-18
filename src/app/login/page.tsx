@@ -9,8 +9,8 @@ export const dynamic = 'force-dynamic'
 export default async function LoginPage() {
   if (await getCtxOrNull()) redirect('/dashboard')
   return (
-    <AuthShell title="Welcome back" subtitle="Log in to your workspace."
-      footer={<>New company? <Link href="/signup" className="font-medium text-indigo-600 hover:underline">Create a workspace</Link></>}>
+    <AuthShell title="Sign in" subtitle="Welcome back. Sign in to your workspace."
+      footer={<>New to Vigil? <Link href="/signup" className="font-medium text-foreground hover:underline">Create an account</Link></>}>
       <LoginForm />
     </AuthShell>
   )

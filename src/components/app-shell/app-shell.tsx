@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
-  Bell, CircleUser, Contact, Inbox, LayoutDashboard, LifeBuoy, Menu, Plug, ScrollText, Shield,
-  ShieldCheck, SlidersHorizontal, SquareKanban, Target, Users, X,
+  Bell, CircleUser, Contact, Inbox, LayoutDashboard, LifeBuoy, Menu, Plug, ScrollText, ShieldCheck,
+  SlidersHorizontal, SquareKanban, Target, Users, X, Zap,
 } from 'lucide-react'
 import { LogoutButton } from '@/components/auth/logout-button'
 import { AvailabilityControl } from '@/components/availability-control'
@@ -17,26 +17,39 @@ export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; b
 export type NavGroup = { title: string; items: NavItem[] }
 type User = { id: string; name: string; workspace: string; level: string; availability: string }
 
+export function Logo({ size = 'md' }: { size?: 'md' | 'lg' }) {
+  return (
+    <span className="flex items-center gap-2.5">
+      <span className={`grid place-items-center rounded-lg bg-foreground text-background ${size === 'lg' ? 'size-9' : 'size-8'}`}>
+        <Zap className="size-4" aria-hidden fill="currentColor" />
+      </span>
+      <span className={`font-semibold tracking-tight ${size === 'lg' ? 'text-xl' : 'text-[15px]'}`}>Vigil</span>
+    </span>
+  )
+}
+
+const isActive = (path: string, href: string) => path === href || (href !== '/dashboard' && path.startsWith(href + '/'))
+
 function Nav({ groups, onNavigate }: { groups: NavGroup[]; onNavigate?: () => void }) {
   const path = usePathname()
   return (
-    <nav aria-label="Main" className="flex flex-col gap-6">
+    <nav aria-label="Main" className="flex flex-col gap-5">
       {groups.map(g => (
         <div key={g.title}>
-          <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{g.title}</p>
-          <ul className="flex flex-col gap-0.5">
+          <p className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">{g.title}</p>
+          <ul className="flex flex-col gap-px">
             {g.items.map(it => {
               const Icon = ICONS[it.icon]
-              const active = path === it.href || (it.href !== '/dashboard' && path.startsWith(it.href + '/')) || path === it.href.split('?')[0]
+              const active = isActive(path, it.href)
               return (
                 <li key={it.href}>
                   <Link href={it.href} onClick={onNavigate} aria-current={active ? 'page' : undefined}
-                    className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400 ${
-                      active ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}>
-                    <Icon className={`size-4 shrink-0 ${active ? 'text-white' : 'text-slate-400 group-hover:text-white'}`} aria-hidden />
+                    className={`flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
+                      active ? 'bg-accent font-medium text-foreground' : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'}`}>
+                    <Icon className="size-4 shrink-0" aria-hidden />
                     <span className="flex-1">{it.label}</span>
                     {!!it.badge && (
-                      <span className={`min-w-5 rounded-full px-1.5 py-0.5 text-center text-[11px] font-semibold ${active ? 'bg-white text-indigo-700' : 'bg-rose-500 text-white'}`}>
+                      <span className="grid min-w-5 place-items-center rounded-full bg-foreground px-1.5 text-[11px] font-semibold leading-5 text-background">
                         {it.badge}<span className="sr-only"> unread</span>
                       </span>
                     )}
@@ -53,45 +66,57 @@ function Nav({ groups, onNavigate }: { groups: NavGroup[]; onNavigate?: () => vo
 
 function SidebarContent({ groups, user, onNavigate }: { groups: NavGroup[]; user: User; onNavigate?: () => void }) {
   return (
-    <div className="flex h-full flex-col gap-6 overflow-y-auto px-3 py-5">
-      <Link href="/dashboard" onClick={onNavigate} className="flex items-center gap-2.5 px-3">
-        <span className="grid size-8 place-items-center rounded-lg bg-indigo-600 text-white shadow"><Shield className="size-4" aria-hidden /></span>
-        <span className="text-lg font-semibold tracking-tight text-white">Vigil</span>
-      </Link>
-      <div className="flex-1"><Nav groups={groups} onNavigate={onNavigate} /></div>
-      <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
-        <div className="flex items-center gap-3">
-          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-indigo-500/20 text-sm font-semibold text-indigo-200" aria-hidden>
+    <div className="flex h-full flex-col">
+      <div className="px-4 pb-4 pt-5">
+        <Link href="/dashboard" onClick={onNavigate} className="block rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Logo />
+          <span className="mt-1 block truncate pl-[42px] text-xs text-muted-foreground">{user.workspace}</span>
+        </Link>
+      </div>
+      <div className="flex-1 overflow-y-auto px-2.5 pb-4"><Nav groups={groups} onNavigate={onNavigate} /></div>
+      <div className="flex flex-col gap-3 border-t border-border p-3">
+        <div className="flex items-center gap-2.5">
+          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold" aria-hidden>
             {user.name.split(' ').map(p => p[0]).slice(0, 2).join('')}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-white">{user.name}</p>
-            <p className="truncate text-xs text-slate-400"><span className="capitalize">{user.level}</span> · {user.workspace}</p>
+            <p className="truncate text-sm font-medium">{user.name}</p>
+            <p className="truncate text-xs capitalize text-muted-foreground">{user.level}</p>
           </div>
         </div>
-        <AvailabilityControl userId={user.id} current={user.availability} tone="dark" />
-        <LogoutButton tone="dark" />
+        <AvailabilityControl userId={user.id} current={user.availability} />
+        <LogoutButton />
       </div>
     </div>
   )
 }
+
+const TITLES: [string, string, string][] = [
+  ['/dashboard', 'Workspace', 'Dashboard'], ['/inbox', 'Workspace', 'Inbox'], ['/notifications', 'Workspace', 'Notifications'],
+  ['/leads', 'Operations', 'Leads'], ['/recovery', 'Operations', 'Recovery queue'], ['/contacts', 'Customers', 'Contacts'],
+  ['/pipeline', 'Customers', 'Pipeline'], ['/team', 'Administration', 'Team'], ['/settings/roles', 'Administration', 'Roles'],
+  ['/audit', 'Administration', 'Audit log'], ['/settings/rules', 'Administration', 'Assignment rules'],
+  ['/settings/integrations', 'Administration', 'Integrations'], ['/profile', 'Account', 'Profile'],
+]
 
 export function AppShell({ groups, user, unreadNotifications, children }:
   { groups: NavGroup[]; user: User; unreadNotifications: number; children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const path = usePathname()
   useEffect(() => setOpen(false), [path])
+  const crumb = TITLES.find(([p]) => isActive(path, p)) ?? ['Workspace', 'Vigil']
+  const [section, page] = crumb.length === 3 ? [crumb[1], crumb[2]] : crumb
   return (
-    <div className="min-h-screen bg-slate-50">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 bg-slate-950 lg:block">
+    <div className="min-h-screen bg-background">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-border bg-sidebar lg:block">
         <SidebarContent groups={groups} user={user} />
       </aside>
 
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
-          <button type="button" className="absolute inset-0 bg-slate-950/60" onClick={() => setOpen(false)} aria-label="Close menu" />
-          <aside className="absolute inset-y-0 left-0 w-72 max-w-[85%] bg-slate-950 shadow-xl">
-            <button type="button" onClick={() => setOpen(false)} className="absolute right-3 top-4 rounded-md p-1 text-slate-300 hover:text-white" aria-label="Close menu">
+          <button type="button" className="absolute inset-0 bg-black/70" onClick={() => setOpen(false)} aria-label="Close menu" />
+          <aside className="absolute inset-y-0 left-0 w-72 max-w-[85%] border-r border-border bg-sidebar shadow-2xl">
+            <button type="button" onClick={() => setOpen(false)} className="absolute right-3 top-4 rounded-md p-1 text-muted-foreground hover:text-foreground" aria-label="Close menu">
               <X className="size-5" />
             </button>
             <SidebarContent groups={groups} user={user} onNavigate={() => setOpen(false)} />
@@ -99,18 +124,18 @@ export function AppShell({ groups, user, unreadNotifications, children }:
         </div>
       )}
 
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur sm:px-6 lg:px-8">
-          <button type="button" onClick={() => setOpen(true)} className="-ml-1 rounded-md p-1.5 text-slate-700 hover:bg-slate-100 lg:hidden" aria-label="Open menu">
+      <div className="lg:pl-60">
+        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6 lg:px-8">
+          <button type="button" onClick={() => setOpen(true)} className="-ml-1 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden" aria-label="Open menu">
             <Menu className="size-5" />
           </button>
-          <span className="font-semibold text-slate-900 lg:hidden">Vigil</span>
-          <span className="hidden text-sm text-slate-500 lg:inline">{user.workspace}</span>
-          <div className="ml-auto flex items-center gap-4">
+          <p className="text-sm text-muted-foreground"><span className="hidden sm:inline">{section} / </span><span className="font-medium text-foreground">{page}</span></p>
+          <div className="ml-auto flex items-center gap-2.5">
             <LiveRefresh />
-            <Link href="/notifications" className="relative rounded-full p-1.5 text-slate-600 hover:bg-slate-100" aria-label={`Notifications${unreadNotifications ? `, ${unreadNotifications} unread` : ''}`}>
-              <Bell className="size-5" />
-              {unreadNotifications > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-rose-500 px-1 text-center text-[10px] font-semibold leading-4 text-white">{unreadNotifications}</span>}
+            <Link href="/notifications" className="relative grid size-9 place-items-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+              aria-label={`Notifications${unreadNotifications ? `, ${unreadNotifications} unread` : ''}`}>
+              <Bell className="size-4" />
+              {unreadNotifications > 0 && <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-foreground ring-2 ring-background" aria-hidden />}
             </Link>
           </div>
         </header>

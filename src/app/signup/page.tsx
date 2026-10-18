@@ -10,7 +10,7 @@ export default async function SignupPage() {
   if (await getCtxOrNull()) redirect('/dashboard')
   return (
     <AuthShell title="Create your workspace" subtitle="You become the Owner. Invite your team next."
-      footer={<>Already have an account? <Link href="/login" className="font-medium text-indigo-600 hover:underline">Log in</Link></>}>
+      footer={<>Already have an account? <Link href="/login" className="font-medium text-foreground hover:underline">Sign in</Link></>}>
       <SignupForm />
     </AuthShell>
   )

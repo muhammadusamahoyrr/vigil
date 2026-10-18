@@ -23,7 +23,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
         </div>
       </PageTitle>
       {c.channel === 'web' && (
-        <p role="note" className="rounded-md border border-amber-600 px-3 py-2 text-sm text-amber-900 dark:text-amber-300">
+        <p role="note" className="rounded-md border border-amber-600 px-3 py-2 text-sm text-amber-300">
           Unverified identity: web chat visitors type their own name, phone and email. Confirm who you are talking to before sharing account, payment or appointment details.
         </p>
       )}
@@ -31,7 +31,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
         <Card title="Messages">
           <ol className="flex flex-col gap-2" aria-live="polite">
             {messages.map(m => (
-              <li key={m.id} className={`max-w-[85%] px-3.5 py-2 text-sm shadow-sm ${m.direction === 'out' ? 'self-end rounded-2xl rounded-br-sm bg-indigo-600 text-white' : 'self-start rounded-2xl rounded-tl-sm border border-slate-200 bg-slate-50 text-slate-800'}`}>
+              <li key={m.id} className={`max-w-[85%] px-3.5 py-2 text-sm shadow-sm ${m.direction === 'out' ? 'self-end rounded-2xl rounded-br-sm bg-primary text-primary-foreground' : 'self-start rounded-2xl rounded-tl-sm border border-border bg-muted text-foreground'}`}>
                 <span className="block text-xs opacity-80">{m.direction === 'out' ? (m.sent_by_name ?? 'Team') : c.contact_name} · {fmt(m.created_at)}</span>
                 <span className="whitespace-pre-wrap break-words">{m.body}</span>
               </li>

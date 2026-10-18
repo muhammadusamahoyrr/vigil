@@ -69,7 +69,7 @@ export async function listLeads(ctx: Ctx, opts: { mine?: boolean; status?: strin
   const rows = await scoped(ctx).many(
     `SELECT l.id, l.source, l.status, l.created_at, c.name AS contact_name, c.phone,
             a.id AS assignment_id, a.user_id AS owner_id, u.name AS owner_name,
-            a.deadline_at, a.acknowledged_at, a.level,
+            a.deadline_at, a.acknowledged_at, a.level, a.reason,
             (SELECT count(*)::int FROM lead_assignments e WHERE e.lead_id = l.id AND e.outcome = 'escalated') AS escalations
        FROM leads l
        JOIN contacts c ON c.id = l.contact_id AND c.workspace_id = l.workspace_id

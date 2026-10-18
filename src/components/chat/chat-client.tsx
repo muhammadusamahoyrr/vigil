@@ -65,15 +65,15 @@ export function ChatClient({ slug, initial }: { slug: string; initial: Conv }) {
   const input = 'h-10 w-full rounded-md border border-input bg-background px-3 text-base text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive'
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-4 py-4" aria-live="polite" aria-label="Conversation">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-4" aria-live="polite" aria-label="Conversation">
         {!conv && (
-          <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
+          <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-3 text-sm text-foreground">
             Hi! 👋 Tell us who you are and what you need. Someone from our team will answer right here.
           </div>
         )}
         <ol className="flex flex-col gap-2">
           {conv?.messages.map((m, i) => (
-            <li key={i} className={`max-w-[85%] px-3.5 py-2 text-sm shadow-sm ${m.from === 'customer' ? 'self-end rounded-2xl rounded-br-sm bg-indigo-600 text-white' : 'self-start rounded-2xl rounded-tl-sm border border-slate-200 bg-white text-slate-800'}`}>
+            <li key={i} className={`max-w-[85%] px-3.5 py-2 text-sm shadow-sm ${m.from === 'customer' ? 'self-end rounded-2xl rounded-br-sm bg-primary text-primary-foreground' : 'self-start rounded-2xl rounded-tl-sm border border-border bg-card text-foreground'}`}>
               <span className="block text-xs opacity-80">{m.from === 'customer' ? 'You' : m.agent ?? 'Team'} · {new Date(m.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               <span className="whitespace-pre-wrap break-words">{m.body}</span>
             </li>
@@ -82,11 +82,11 @@ export function ChatClient({ slug, initial }: { slug: string; initial: Conv }) {
         <div ref={endRef} />
       </div>
       {conv && (
-        <p className="bg-slate-50 px-4 pb-1 text-xs text-slate-500" role="status">
+        <p className="px-4 pb-1 text-xs text-muted-foreground" role="status">
           {link === 'live' ? '● Connected: replies appear instantly' : link === 'polling' ? '○ Reconnecting: checking for replies every few seconds' : 'Connecting…'}
         </p>
       )}
-      <form onSubmit={send} className="flex flex-col gap-2 border-t border-slate-200 bg-white px-4 py-3" noValidate>
+      <form onSubmit={send} className="flex flex-col gap-2 border-t border-border bg-background px-4 py-3" noValidate>
         {error && <p role="alert" className="rounded-md border border-destructive px-3 py-2 text-sm text-destructive">{error}</p>}
         {!conv && (
           <>

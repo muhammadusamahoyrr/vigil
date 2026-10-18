@@ -17,10 +17,10 @@ export function LiveRefresh() {
     return () => { clearTimeout(timer); es.close() }
   }, [router])
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${live ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'}`} aria-live="polite">
+    <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border px-2.5 text-xs font-medium text-muted-foreground" aria-live="polite">
       <span aria-hidden className="relative flex size-2">
-        {live && <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
-        <span className={`relative inline-flex size-2 rounded-full ${live ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+        {live && <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" />}
+        <span className={`relative inline-flex size-2 rounded-full ${live ? 'bg-emerald-400' : 'bg-amber-400'}`} />
       </span>
       {live ? 'Live' : 'Reconnecting…'}
     </span>
