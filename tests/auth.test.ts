@@ -116,6 +116,7 @@ describe('signup', () => {
     expect(res.status).toBe(400)
     const body = await res.json()
     expect(Object.keys(body.fields).sort()).toEqual(['email', 'name', 'password', 'workspaceName'])
+    expect(body.error).toMatch(/^Please fix: .*valid email/)
   })
 
   it('rolls back everything when a bootstrap step fails', async () => {

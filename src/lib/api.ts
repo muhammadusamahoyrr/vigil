@@ -26,7 +26,10 @@ export function errorResponse(e: unknown, req?: Request) {
       const key = issue.path.join('.') || 'form'
       fields[key] ??= issue.message
     }
-    return NextResponse.json({ error: 'Please fix the highlighted fields.', fields }, { status: 400 })
+    // say exactly what is wrong, so the message helps even where a form cannot highlight the field
+    const msgs = [...new Set(Object.values(fields))]
+    const error = msgs.length === 1 ? msgs[0] : `Please fix: ${msgs.join(' ')}`
+    return NextResponse.json({ error, fields }, { status: 400 })
   }
   if (e instanceof ApiError) {
     return NextResponse.json({ error: e.message, ...(e.fields ? { fields: e.fields } : {}) }, { status: e.status })

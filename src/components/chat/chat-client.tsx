@@ -116,6 +116,7 @@ export function ChatClient({ slug, initial }: { slug: string; initial: Conv }) {
           onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
           className="rounded-md border border-input bg-background p-2 text-base text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50" />
         {fields.message && <p className="text-sm text-destructive">Error: {fields.message}</p>}
+        {fields.name && conv && <p className="text-sm text-destructive">Error: {fields.name}</p>}
         <Button type="submit" size="lg" disabled={sending || !form.message.trim()} aria-busy={sending}>{sending ? 'Sending…' : 'Send'}</Button>
       </form>
     </div>
