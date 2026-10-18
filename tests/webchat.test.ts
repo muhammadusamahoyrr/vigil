@@ -135,6 +135,19 @@ describe('customer web chat', () => {
     expect((await customer('no-such-workspace', null)).status).toBe(404)
   })
 
+  it('a visitor typing an existing phone number learns nothing stored in the CRM', async () => {
+    const phone = phoneNo()
+    await customer(A.slug, { idempotencyKey: key(), name: 'Real Customer Name', phone, email: 'real@example.com', message: 'first' })
+    const intruder = await customer(A.slug, { idempotencyKey: key(), name: 'Somebody Else', phone, message: 'who am I?' })
+    expect(intruder.status).toBe(201)
+    const view = await customer(A.slug, null, intruder.token)
+    const json = JSON.stringify(view)
+    expect(json).not.toContain('Real Customer Name')
+    expect(json).not.toContain('real@example.com')
+    expect(json).not.toContain('first') // the other session's messages stay private
+    expect(view.data.conversation.messages).toHaveLength(1)
+  })
+
   it('13. a failure mid-transaction leaves no contact, conversation, lead or message', async () => {
     await pool.query(`
       CREATE OR REPLACE FUNCTION test_fail_chat() RETURNS trigger LANGUAGE plpgsql AS $$

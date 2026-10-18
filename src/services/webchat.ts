@@ -131,9 +131,10 @@ export async function getCustomerConversation(slug: string, token: string | null
   const ws = await resolveChatWorkspace(slug)
   if (!token) return { business: ws.name, conversation: null }
   const db = scoped(systemCtx(ws.id))
-  const conv = await db.maybeOne<{ id: string; contact_name: string }>(
-    `SELECT cv.id, c.name AS contact_name FROM conversations cv JOIN contacts c ON c.id = cv.contact_id
-      WHERE cv.workspace_id = $1 AND cv.channel = 'web' AND cv.customer_token_hash = $2`, [hashChatToken(token)])
+  // Only this session's own messages go back. Never CRM contact data: the contact may have been
+  // matched from a phone/email the visitor typed, which proves nothing about who they are.
+  const conv = await db.maybeOne<{ id: string }>(
+    `SELECT id FROM conversations WHERE workspace_id = $1 AND channel = 'web' AND customer_token_hash = $2`, [hashChatToken(token)])
   if (!conv) return { business: ws.name, conversation: null }
   const messages = await db.many<{ direction: 'in' | 'out'; body: string; created_at: Date; agent: string | null }>(
     `SELECT m.direction, m.body, m.created_at, split_part(u.name, ' ', 1) AS agent
@@ -144,7 +145,6 @@ export async function getCustomerConversation(slug: string, token: string | null
   return {
     business: ws.name,
     conversation: {
-      customerName: conv.contact_name,
       messages: messages.map(m => ({ from: m.direction === 'in' ? 'customer' as const : 'agent' as const, body: m.body, at: m.created_at.toISOString(), agent: m.agent })),
     },
   }

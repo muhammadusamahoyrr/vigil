@@ -22,6 +22,11 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
           {escalations > 0 && <Badge tone="warn">Escalated ×{escalations}</Badge>}
         </div>
       </PageTitle>
+      {c.channel === 'web' && (
+        <p role="note" className="rounded-md border border-amber-600 px-3 py-2 text-sm text-amber-900 dark:text-amber-300">
+          Unverified identity: web chat visitors type their own name, phone and email. Confirm who you are talking to before sharing account, payment or appointment details.
+        </p>
+      )}
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <Card title="Messages">
           <ol className="flex flex-col gap-2" aria-live="polite">

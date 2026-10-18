@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 
 type Msg = { from: 'customer' | 'agent'; body: string; at: string; agent: string | null }
-type Conv = { customerName: string; messages: Msg[] } | null
+type Conv = { messages: Msg[] } | null
 
 const newKey = () => (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g, '')
 
