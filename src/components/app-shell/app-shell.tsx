@@ -2,9 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
-  Bell, CircleUser, Contact, Inbox, LayoutDashboard, LifeBuoy, Menu, Plug, ScrollText, ShieldCheck,
+  Bell, ChevronsUpDown, CircleUser, Contact, Inbox, LayoutDashboard, LifeBuoy, Menu, Plug, ScrollText, ShieldCheck,
   SlidersHorizontal, SquareKanban, Target, Users, X, Zap,
 } from 'lucide-react'
 import { LogoutButton } from '@/components/auth/logout-button'
@@ -64,6 +64,52 @@ function Nav({ groups, onNavigate }: { groups: NavGroup[]; onNavigate?: () => vo
   )
 }
 
+const STATUS: Record<string, { label: string; dot: string }> = {
+  available: { label: 'Available', dot: 'bg-emerald-400' }, busy: { label: 'Busy', dot: 'bg-amber-400' },
+  on_leave: { label: 'On leave', dot: 'bg-rose-400' }, offline: { label: 'Offline', dot: 'bg-zinc-500' },
+}
+
+/** Compact account button; availability, profile and logout open in a menu above it. */
+function AccountMenu({ user, onNavigate }: { user: User; onNavigate?: () => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey) }
+  }, [open])
+  const st = STATUS[user.availability] ?? STATUS.offline
+  return (
+    <div ref={ref} className="relative border-t border-border p-2.5">
+      {open && (
+        <div id="account-menu" role="dialog" aria-label="Account" className="absolute inset-x-2.5 bottom-full mb-2 flex flex-col gap-3 rounded-xl border border-border bg-popover p-3 shadow-2xl">
+          <AvailabilityControl userId={user.id} current={user.availability} />
+          <Link href="/profile" onClick={() => { setOpen(false); onNavigate?.() }}
+            className="flex h-9 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground">
+            <CircleUser className="size-4" aria-hidden /> Profile & Slack alerts
+          </Link>
+          <LogoutButton />
+        </div>
+      )}
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-controls="account-menu"
+        className="flex w-full items-center gap-2.5 rounded-lg p-1.5 text-left outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring">
+        <span className="relative grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold" aria-hidden>
+          {user.name.split(' ').map(p => p[0]).slice(0, 2).join('')}
+          <span className={`absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-sidebar ${st.dot}`} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{user.name}</span>
+          <span className="block truncate text-xs text-muted-foreground"><span className="capitalize">{user.level}</span> · {st.label}</span>
+        </span>
+        <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+      </button>
+    </div>
+  )
+}
+
 function SidebarContent({ groups, user, onNavigate }: { groups: NavGroup[]; user: User; onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
@@ -74,19 +120,7 @@ function SidebarContent({ groups, user, onNavigate }: { groups: NavGroup[]; user
         </Link>
       </div>
       <div className="flex-1 overflow-y-auto px-2.5 pb-4"><Nav groups={groups} onNavigate={onNavigate} /></div>
-      <div className="flex flex-col gap-3 border-t border-border p-3">
-        <div className="flex items-center gap-2.5">
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold" aria-hidden>
-            {user.name.split(' ').map(p => p[0]).slice(0, 2).join('')}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{user.name}</p>
-            <p className="truncate text-xs capitalize text-muted-foreground">{user.level}</p>
-          </div>
-        </div>
-        <AvailabilityControl userId={user.id} current={user.availability} />
-        <LogoutButton />
-      </div>
+      <AccountMenu user={user} onNavigate={onNavigate} />
     </div>
   )
 }
