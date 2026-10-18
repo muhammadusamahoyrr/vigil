@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "npm run migrate && npm run seed:demo && next start",
+    "start": "node scripts/start.mjs",
     "lint": "eslint",
     "check": "tsc --noEmit",
     "worker": "tsx worker/index.ts",
