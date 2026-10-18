@@ -1,5 +1,6 @@
 import { AvailabilityControl } from '@/components/availability-control'
 import { AddMemberForm } from '@/components/team/add-member-form'
+import { ManageMember } from '@/components/team/manage-member'
 import { Badge, Card, PageTitle } from '@/components/ui-bits'
 import { hasPermission } from '@/lib/rbac'
 import { getCtxOrNull } from '@/lib/session'
@@ -29,7 +30,10 @@ export default async function TeamPage() {
                 </span>
               </div>
               {canManage && u.id !== ctx.userId && !u.deactivated_at && !(u.level === 'owner' && ctx.level !== 'owner') && (
-                <AvailabilityControl userId={u.id} current={u.availability} label={`Set ${u.name}'s availability`} showPolicy={false} />
+                <div className="flex flex-col gap-2">
+                  <AvailabilityControl userId={u.id} current={u.availability} label={`Set ${u.name}'s availability`} showPolicy={false} />
+                  {u.level !== 'owner' && <ManageMember user={{ id: u.id, name: u.name, level: u.level, roleIds: u.role_ids }} roles={roles} />}
+                </div>
               )}
             </li>
           ))}

@@ -17,7 +17,8 @@ export async function listTeam(ctx: Ctx) {
             u.slack_user_id IS NOT NULL AS slack_linked,
             (SELECT count(*)::int FROM lead_assignments a WHERE a.user_id = u.id AND a.closed_at IS NULL) AS open_leads,
             COALESCE((SELECT array_agg(r.name ORDER BY r.name) FROM user_roles ur JOIN roles r ON r.id = ur.role_id
-                       WHERE ur.user_id = u.id), '{}') AS roles
+                       WHERE ur.user_id = u.id), '{}') AS roles,
+            COALESCE((SELECT array_agg(ur.role_id) FROM user_roles ur WHERE ur.user_id = u.id), '{}') AS role_ids
        FROM users u
       WHERE u.workspace_id = $1
       ORDER BY u.deactivated_at NULLS FIRST, u.name`)

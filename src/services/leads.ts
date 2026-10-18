@@ -62,7 +62,7 @@ export async function createLead(ctx: Ctx, input: z.infer<typeof createLeadSchem
   })
 }
 
-export async function listLeads(ctx: Ctx, opts: { mine?: boolean; status?: string; page?: number }) {
+export async function listLeads(ctx: Ctx, opts: { mine?: boolean; status?: string; page?: number; today?: boolean }) {
   requirePermission(ctx, 'crm.view')
   const onlyMine = opts.mine || !seesAllLeads(ctx)
   const page = Math.max(1, opts.page ?? 1)
@@ -75,12 +75,15 @@ export async function listLeads(ctx: Ctx, opts: { mine?: boolean; status?: strin
        JOIN contacts c ON c.id = l.contact_id AND c.workspace_id = l.workspace_id
        LEFT JOIN lead_assignments a ON a.lead_id = l.id AND a.closed_at IS NULL
        LEFT JOIN users u ON u.id = a.user_id
+       JOIN workspaces w ON w.id = l.workspace_id
       WHERE l.workspace_id = $1
         AND ($2::uuid IS NULL OR a.user_id = $2)
         AND ($3::text IS NULL OR l.status = $3)
+        -- same "today" as the dashboard tile (local midnight in the workspace timezone)
+        AND (NOT $5::boolean OR l.created_at >= (date_trunc('day', now() AT TIME ZONE w.timezone) AT TIME ZONE w.timezone))
       ORDER BY l.created_at DESC
       LIMIT ${PAGE_SIZE + 1} OFFSET $4`,
-    [onlyMine ? ctx.userId : null, opts.status ?? null, (page - 1) * PAGE_SIZE])
+    [onlyMine ? ctx.userId : null, opts.status ?? null, (page - 1) * PAGE_SIZE, !!opts.today])
   return { leads: rows.slice(0, PAGE_SIZE), page, hasMore: rows.length > PAGE_SIZE, onlyMine, canSeeAll: seesAllLeads(ctx) }
 }
 

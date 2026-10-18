@@ -6,12 +6,12 @@ import { hasPermission } from '@/lib/rbac'
 import { getCtxOrNull } from '@/lib/session'
 import { listLeads } from '@/services/leads'
 
-type SP = Promise<{ mine?: string; page?: string }>
+type SP = Promise<{ mine?: string; page?: string; today?: string }>
 
 export default async function LeadsPage({ searchParams }: { searchParams: SP }) {
   const ctx = (await getCtxOrNull())!
   const sp = await searchParams
-  const data = await listLeads(ctx, { mine: sp.mine === '1', page: Number(sp.page ?? 1) })
+  const data = await listLeads(ctx, { mine: sp.mine === '1', page: Number(sp.page ?? 1), today: sp.today === '1' })
   return (
     <>
       <PageTitle title="Leads">
@@ -22,6 +22,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: SP }) 
           </div>
         )}
       </PageTitle>
+      {sp.today === '1' && <p className="text-sm text-foreground">Showing leads created today. <Link href="/leads" className="underline">Show all</Link></p>}
       {hasPermission(ctx, 'crm.create') && <NewLeadForm />}
       <Card>
         {data.leads.length === 0 ? (
