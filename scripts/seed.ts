@@ -23,6 +23,8 @@ const ownerCtx = (workspaceId: string, userId: string): Ctx =>
   ({ workspaceId, userId, level: 'owner', permissions: ['*'], isSystem: false })
 
 async function main() {
+  // `npm run seed:demo` runs on every Railway boot: it only seeds when DEMO_MODE=true
+  if (process.argv.includes('--only-demo') && !DEMO) { console.log('seed:demo skipped (DEMO_MODE is not true)'); return }
   const exists = await pool.query('SELECT 1 FROM users WHERE lower(email) = $1', [OWNER_EMAIL])
   if (exists.rowCount) { console.log(`Demo data already present (${OWNER_EMAIL}). Nothing to do.`); return }
 
